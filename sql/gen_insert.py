@@ -178,3 +178,22 @@ with open('osnap_legacy/security_compartments.csv', 'r') as f:
 	
 for i in range(1, len(compartments)):
     print("INSERT INTO compartments (compartment_pk, abbrv, comment) VALUES ({0}, '{1}', '{2}');".format(i, compartments[i][0], compartments[i][1]))
+
+# Adding assets to asset_on
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (5, 1, '2017-01-04 00:00:00', '2017-01-07 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (6, 1, '2017-01-04 00:00:00', '2017-01-07 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (7, 1, '2017-01-04 00:00:00', '2017-01-07 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (8, 1, '2017-01-04 00:00:00', '2017-01-07 00:00:00');")
+
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (11, 2, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (12, 2, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (13, 2, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (14, 2, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (15, 3, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (16, 3, '2017-01-08 00:00:00', '2017-01-08 00:00:00');")
+
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (1, 4, '2017-01-10 00:00:00', '2017-01-10 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (2, 4, '2017-01-10 00:00:00', '2017-01-10 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (3, 4, '2017-01-10 00:00:00', '2017-01-10 00:00:00');")
+print("INSERT INTO asset_on (asset_fk, convoy_fk, load_dt, unload_dt) VALUES (4, 4, '2017-01-10 00:00:00', '2017-01-10 00:00:00');")
