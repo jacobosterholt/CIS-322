@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Report Filters</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div class="container">
+      <form action="/facility_report", method="post">
+        <h1>Facility Inventory Report</h1>
+        <h3>Facilities to include in report</h3>
+        <input type="checkbox" name="facility" value="7" checked> Groom Lake<br>
+        <input type="checkbox" name="facility" value="2" checked> Headquarters<br>
+        <input type="checkbox" name="facility" value="8" checked> Los Alamos, NM<br>
+        <input type="checkbox" name="facility" value="3" checked> MB005<br>
+        <input type="checkbox" name="facility" value="4" checked> National City<br>
+        <input type="checkbox" name="facility" value="6" checked> Site 300<br>
+        <input type="checkbox" name="facility" value="5" checked> Sparks, NV<br>
+        <input type="checkbox" name="facility" value="1" checked> Washington, D.C.<br>
+        <h3>Date of inventory</h3>
+        Date: <input type="text" name="date" placeholder="mm/dd/yyyy"><br>
+        <br>
+        <input type="submit" value="Generate Report">
+      </form>
+      
+      <form action="/in_transit_report", method="post">
+        <h1>In Transit Report</h1>
+        <h3>Date in transit</h3>
+        Date: <input type="text" name="date" placeholder="mm/dd/yyyy"><br>
+        <br>
+        <input type="submit" value="Generate Report">
+      </form>
+      <br>
+      <form action="/logout">
+        <input type="submit" value="Logout">
+      </form>
+    </div>
+  </body>
+</html>
