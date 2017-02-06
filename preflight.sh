@@ -4,7 +4,6 @@
 # Specifically this script:
 #    1. creates the database
 #    2. imports the legacy data
-#    3. copies the required source to $HOME/wsgi
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: ./preflight.sh <dbname>"
