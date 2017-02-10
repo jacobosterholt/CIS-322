@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Rest</title>
+  </head>
+  <body>
+    <h1>API Calls</h1>
+    <br>
+    <h2>lost_key</h2>
+    <h3>Request -</h3>
+    The request does not provide values for any of the arguments.<br>
+    <h3>Response -</h3>
+    <b>result</b> 'OK' or 'FAIL'<br>
+    <b>key</b> The LOST public key<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"result": "OK",<br>
+        &emsp;"key": "bksaoudu.....aoelchsauh"<br>
+    }<br>
+    <br>
+    <br>
+    
+    <h2>activate_user</h2>
+    Reactivates LOST access for a user or generates a new user account if needed.
+    <h3>Request -</h3>
+    <b>username</b> OSNAP username to activate<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"username": "carter",<br>
+    }<br>
+    <h3>Response -</h3>
+    <b>result</b> 'OK', 'NEW', or 'FAIL'<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"result": "OK",<br>
+    }<br>
+    <br>
+    <br>
+    
+    <h2>suspend_user</h2>
+    Revokes access for a user.  If the user does not exist or access has already been revoked, this call has no effect.
+    <h3>Request -</h3>
+    <b>username</b> OSNAP username to revoke<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"username": "jackson",<br>
+    }<br>
+    <h3>Response -</h3>
+    <b>result</b> 'OK'<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"result": "OK",<br>
+    }<br>
+    <br>
+    <br>
+    
+    <h2>list_products</h2>
+    Requests a listing of all products in LOST based on a filter criteria.
+    <h3>Request -</h3>
+    <b>vendor</b> Case insensitive string to match against vendor name<br>
+    <b>description</b> Case insensitive string to match against product description<br>
+    <b>compartments</b> Security tags for the asset as a json array, all tags must be matched for compartment and level.<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"vendor": "",<br>
+        &emsp;"description": "notepad",<br>
+        &emsp;"compartments": [],<br>
+    }<br>
+    <h3>Response -</h3>
+    <b>listing</b> a json list containing the product information entries.<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"listing": [<br>
+        &emsp;&emsp;{<br>
+        &emsp;&emsp;&emsp;"vendor": "Dunder Mifflin",<br>
+        &emsp;&emsp;&emsp;"description": "LOST legal size notepad",<br>
+        &emsp;&emsp;&emsp;"compartments": []<br>
+        &emsp;&emsp;},<br>
+        &emsp;&emsp;{<br>
+        &emsp;&emsp;&emsp;"vendor": "big n large",<br>
+        &emsp;&emsp;&emsp;"description": "LOST legal size notepad",<br>
+        &emsp;&emsp;&emsp;"compartments": []<br>
+        &emsp;&emsp;}<br>
+        &emsp;]<br>
+    }<br>
+    <br>
+    <br>
+    
+    <h2>add_products</h2>
+    Adds products to LOST. Requests should be atomic (all products are added or no products  are  added)  and  attempting  to  add  a  duplicate  product  should  cause  the  request to fail.  A product is duplicated if at the end of the call the database would have two products with the same vendor and description.
+    <h3>Request -</h3>
+    <b>new_products</b> a json list describing the new products<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"new_products": [<br>
+        &emsp;&emsp;{<br>
+        &emsp;&emsp;&emsp;"vendor": "Dunder Mifflin",<br>
+        &emsp;&emsp;&emsp;"description": "LOST letter size notepad",<br>
+        &emsp;&emsp;&emsp;"alt_description": "Children's storybook",<br>
+        &emsp;&emsp;&emsp;"compartments": ["adm:s"]<br>
+        &emsp;&emsp;},<br>
+        &emsp;&emsp;{<br>
+        &emsp;&emsp;&emsp;"vendor": "Stark Industries",<br>
+        &emsp;&emsp;&emsp;"description": "Micronized Arc Reactor",<br>
+        &emsp;&emsp;&emsp;"alt_description": "Baseball",<br>
+        &emsp;&emsp;&emsp;"compartments": ["nrg:ts","wpn:s"]<br>
+        &emsp;&emsp;}<br>
+        &emsp;]<br>
+    }<br>
+    <h3>Response -</h3>
+    <b>result</b> 'OK', or 'FAIL'<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"result": "OK"<br>
+    }<br>
+    <br>
+    <br>
+    
+    <h2>add_asset</h2>
+    Adds a new asset to LOST.
+    <h3>Request -</h3>
+    <b>vendor</b> Vendor of the product<br>
+    <b>description</b> Description of the product<br>
+    <b>compartments</b> Additional compartments the asset should be classified under<br>
+    <b>facility</b> Facility code the asset is initially housed at<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"vendor": "Dunder Mifflin",<br>
+        &emsp;"description": "LOST letter size notepad",<br>
+        &emsp;"compartments": ["wpn:ts"],<br>
+        &emsp;"facility": "HQ",<br>
+    }<br>
+    <h3>Response -</h3>
+    <b>result</b> 'OK', or 'FAIL'<br>
+    <br>
+    Example:<br>
+    {<br>
+        &emsp;"timestamp": "2017-02-02 06:15:13",<br>
+        &emsp;"result": "OK"<br>
+    }<br>
+    <br>
+  </body>
+</html>

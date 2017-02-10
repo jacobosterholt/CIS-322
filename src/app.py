@@ -6,6 +6,7 @@ import datetime
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 from config import dbname, dbhost, dbport
+import json
 
 cursor = None
 conn = None
@@ -147,6 +148,79 @@ def in_transit_report():
     table_string += '</table>\n<form action="/logout">\n<br>\n<input type="submit" value="Logout">\n</form>\n</body>\n<html>'
             
     return table_string
+    
+@app.route("/rest")
+def rest():
+    return render_template("rest.html")
+    
+@app.route("/rest/lost_key", methods=('POST',))
+def lost_key():
+    dat = dict()
+    dat['timestamp'] = '2017-02-02 06:15:13'
+    dat['result'] = 'OK'
+    dat['key'] = 'bksaoudu.....aoelchsauh'
+    data = json.dumps(dat)
+    return data
+    
+@app.route('/rest/suspend_user', methods=('POST',))
+def suspend_user():
+    # Try to handle as plaintext
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])
+
+    dat = dict()
+    dat['timestamp'] = req['timestamp']
+    dat['result'] = 'OK'
+    data = json.dumps(dat)
+    return data
+    
+@app.route('/rest/activate_user', methods=('POST',))
+def activate_user():
+    # Try to handle as plaintext
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])
+
+    dat = dict()
+    dat['timestamp'] = req['timestamp']
+    dat['result'] = 'OK'
+    data = json.dumps(dat)
+    return data
+    
+@app.route('/rest/list_products', methods=('POST',))
+def list_products():
+    # Try to handle as plaintext
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])
+
+    dat = dict()
+    dat['timestamp'] = req['timestamp']
+    dat['listing'] = [{"vendor": "Dunder Mifflin", "description": "LOST legal size notepad", "compartments": []},{"vendor": "big n large", "description": "LOST legal size notepad", "compartments": []}]
+    data = json.dumps(dat)
+    return data
+    
+@app.route('/rest/add_products', methods=('POST',))
+def add_products():
+    # Try to handle as plaintext
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])
+
+    dat = dict()
+    dat['timestamp'] = req['timestamp']
+    dat['result'] = 'OK'
+    data = json.dumps(dat)
+    return data
+    
+@app.route('/rest/add_asset', methods=('POST',))
+def add_asset():
+    # Try to handle as plaintext
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])
+
+    dat = dict()
+    dat['timestamp'] = req['timestamp']
+    dat['result'] = 'OK'
+    data = json.dumps(dat)
+    return data
     
 @app.route("/logout")
 def logout():
