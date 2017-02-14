@@ -1,7 +1,7 @@
 #! /usr/bin/bash
 
 # This script handles the setup that must occur prior to running LOST
-# Specifically this script:
+# Specifically, this script:
 #    1. creates the database
 #    2. imports the legacy data
 
@@ -13,6 +13,6 @@ fi
 # Database prep
 cd sql
 psql $1 -f create_tables.sql
-bash ./import_data.sh $1 5432
-rm -rf osnap_legacy osnap_legacy.tar.gz
+#bash ./import_data.sh $1 5432
+#rm -rf osnap_legacy osnap_legacy.tar.gz
 cd ..
