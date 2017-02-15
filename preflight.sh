@@ -10,6 +10,8 @@ if [ "$#" -ne 1 ]; then
     exit;
 fi
 
+cp -R src/* $HOME/wsgi
+
 # Database prep
 cd sql
 psql $1 -f create_tables.sql
