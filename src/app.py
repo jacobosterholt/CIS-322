@@ -7,7 +7,8 @@ from config import dbname, dbhost, dbport
 import json
      
 cursor = None
-conn = None     
+conn = None
+user = None
      
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -41,19 +42,24 @@ def connect_to_db():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     connect_to_db()
+    global user
     
     if request.method == 'GET':
         return render_template("login.html")
-        
+    
+    # Gets the username and password that were entered.
     if request.method == 'POST':
         uname = request.form.get('uname')
         password = request.form.get('password')
-        
+    
+    # Looks for a user with the specified username and password.
     cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}'".format(uname, password))
     user = cursor.fetchall()
     
+    # No matching username and password.
     if len(user) == 0:
         return '<!DOCTYPE html><br>Username and password are unmatched.'
+    # Found a matching username and password.
     else:
         return redirect("/dashboard")
 
@@ -90,5 +96,10 @@ def create_user():
         conn.commit()
         return '<!DOCTYPE html><br>User "{0}" has been created!'.format(uname)    
         
+@app.route("/dashboard")
+def dashboard():
+    # Displays the username of the user currently logged in.
+    return user[0][1]
+       
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
