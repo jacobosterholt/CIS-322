@@ -15,6 +15,11 @@ CREATE TABLE roles (
 	title varchar(50)
 );
 
+-- Insert the roles we need into the roles table.
+
+INSERT INTO roles VALUES (1, 'Logistics Officer');
+INSERT INTO roles VALUES (2, 'Facilities Officer');
+
 -- Both columns reference primary keys to match a user with a role. 
 
 CREATE TABLE user_is (

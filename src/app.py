@@ -76,6 +76,11 @@ def create_user():
     if request.method == 'POST':
         uname = request.form.get('uname')
         password = request.form.get('password')
+        role = request.form.get('roles')
+        
+    # Gets the role_pk associated with the role.
+    cursor.execute("SELECT role_pk FROM roles WHERE title = '{}'".format(role))
+    role_key = cursor.fetchall()[0][0]
     
     # Lists of users to be used for generating a primary key.
     cursor.execute("SELECT * FROM users")
@@ -86,13 +91,15 @@ def create_user():
     # Username entered is already in use.
     if len(repeat_user) > 0:
         return '<!DOCTYPE html><br>User "{0}" already exists.'.format(uname)
-    # Adds username and password to the database as a new user.
+    # Adds username and password to the database as a new user in users.
+    # Adds the connection between user and role to the database in user_is.
     else:
         try:
             count = len(all_users)
         except:
             count = 0
         cursor.execute("INSERT INTO users (user_pk, username, password) VALUES ({0}, '{1}', '{2}')".format(count + 1, uname, password))
+        cursor.execute("INSERT INTO user_is (user_fk, role_fk) VALUES ({0}, {1})".format(count + 1, role_key))
         conn.commit()
         return '<!DOCTYPE html><br>User "{0}" has been created!'.format(uname)    
         
