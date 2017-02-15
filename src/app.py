@@ -19,8 +19,7 @@ app.config.update(dict(
     PASSWORD='default'
 ))
 
-@app.route("/create_user")
-def create_user():
+def connect_to_db():
     """Connects to the specific database."""
 	
     # Define our connection string
@@ -38,12 +37,34 @@ def create_user():
     cursor = conn.cursor()
     print("Connected!\n")
     
-    return render_template("create_user.html")
+@app.route("/", methods=['GET', 'POST'])    
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    connect_to_db()
     
-@app.route("/checking_user", methods=['GET', 'POST'])
-def checking_user():
+    if request.method == 'GET':
+        return render_template("login.html")
+        
+    if request.method == 'POST':
+        uname = request.form.get('uname')
+        password = request.form.get('password')
+        
+    cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}'".format(uname, password))
+    user = cursor.fetchall()
+    
+    if len(user) == 0:
+        return '<!DOCTYPE html><br>Username and password are unmatched.'
+    else:
+        return redirect("/dashboard")
+
+@app.route("/create_user", methods=['GET', 'POST'])
+def create_user():
     global cursor
     global conn
+    connect_to_db()
+    
+    if request.method == 'GET':
+        return render_template("create_user.html")
     
     # Gets the username and password that were entered.
     if request.method == 'POST':
@@ -67,7 +88,7 @@ def checking_user():
             count = 0
         cursor.execute("INSERT INTO users (user_pk, username, password) VALUES ({0}, '{1}', '{2}')".format(count + 1, uname, password))
         conn.commit()
-        return '<!DOCTYPE html><br>User "{0}" has been created!'.format(uname)
+        return '<!DOCTYPE html><br>User "{0}" has been created!'.format(uname)    
         
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
