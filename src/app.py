@@ -8,10 +8,10 @@ import json
      
 cursor = None
 conn = None
-user = None
-     
+    
 app = Flask(__name__)
 app.config.from_object(__name__)
+app.secret_key = 'secret'
 
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '{0}.db'.format(dbname)),
@@ -42,26 +42,26 @@ def connect_to_db():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     connect_to_db()
-    global user
     
     if request.method == 'GET':
         return render_template("login.html")
     
-    # Gets the username and password that were entered.
     if request.method == 'POST':
+        # Gets the username and password that were entered.
         uname = request.form.get('uname')
         password = request.form.get('password')
     
-    # Looks for a user with the specified username and password.
-    cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}'".format(uname, password))
-    user = cursor.fetchall()
-    
-    # No matching username and password.
-    if len(user) == 0:
-        return '<!DOCTYPE html><br>Username and password are unmatched.'
-    # Found a matching username and password.
-    else:
-        return redirect("/dashboard")
+        # Looks for a user with the specified username and password.
+        cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}'".format(uname, password))
+        user = cursor.fetchall()
+        
+        # No matching username and password.
+        if len(user) == 0:
+            return '<!DOCTYPE html><br>Username and password are unmatched.'
+        # Found a matching username and password.
+        else:
+            session['username'] = uname
+            return redirect("/dashboard")
 
 @app.route("/create_user", methods=['GET', 'POST'])
 def create_user():
@@ -106,7 +106,11 @@ def create_user():
 @app.route("/dashboard")
 def dashboard():
     # Displays the username of the user currently logged in.
-    return user[0][1]
+    if 'username' in session:
+        username = session['username']
+        return username
+    
+    return redirect('/')
     
 @app.route("/add_facility", methods=['GET', 'POST'])
 def add_facility():
@@ -269,6 +273,51 @@ def add_asset():
         conn.commit()
         return redirect("/add_asset")
         
+@app.route("/dispose_asset", methods=['GET', 'POST'])
+def dispose_asset():
+    connect_to_db()
+    
+    # Displays the username of the user currently logged in.
+    if 'username' in session:
+        username = session['username']
+    else:
+        return redirect('/')
+    
+    cursor.execute("SELECT title FROM users JOIN user_is ON (users.user_pk = user_is.user_fk) JOIN roles ON (user_is.role_fk = roles.role_pk) WHERE username = '{0}'".format(username))
+    role = cursor.fetchall()[0][0]
+
+    # Checks if the user is a logistics officer.
+    if role != 'Logistics Officer':
+        return '<!DOCTYPE html>Only logistics managers can dispose of assets.'
+        
+    if request.method == 'GET':
+        return render_template('dispose_asset.html')
+        
+    if request.method == 'POST':
+        # Gets the inputs from the form.
+        tag = request.form.get('tag')
+        date = request.form.get('date')
+        
+        cursor.execute("SELECT assets.asset_pk, depart_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) WHERE asset_tag = '{0}'".format(tag))
+        d = cursor.fetchall()
+        
+        # The asset doesn't exist.
+        if len(d) == 0:
+            return 'The asset tag "{0}" is not in use.'.format(tag)
+        
+        disposed = True
+        for each in d:
+            if each[1] == None:
+                disposed = False
+                key = each[0]
+        
+        if disposed:
+            return 'The asset "{0}" has already been disposed.'.format(tag)
+            
+        cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = {1} AND depart_dt is null".format(date, key))
+        conn.commit()
+        return redirect('/dashboard')
+    
         
     
 if __name__ == "__main__":
