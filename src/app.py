@@ -277,7 +277,7 @@ def add_asset():
 def dispose_asset():
     connect_to_db()
     
-    # Displays the username of the user currently logged in.
+    # Gets the username of the user currently logged in.
     if 'username' in session:
         username = session['username']
     else:
@@ -305,6 +305,7 @@ def dispose_asset():
         if len(d) == 0:
             return 'The asset tag "{0}" is not in use.'.format(tag)
         
+        # Checks if the asset is at a facility.
         disposed = True
         for each in d:
             if each[1] == None:
@@ -314,11 +315,45 @@ def dispose_asset():
         if disposed:
             return 'The asset "{0}" has already been disposed.'.format(tag)
             
+        # Puts the date in the database as the depart_dt of the asset.
         cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = {1} AND depart_dt is null".format(date, key))
         conn.commit()
         return redirect('/dashboard')
     
+@app.route("/asset_report", methods=['GET', 'POST'])
+def asset_report():
+    connect_to_db()
+    
+    if request.method == 'GET':
+        return render_template('asset_report.html')
         
+    if request.method == 'POST':
+        # Gets the inputs from the form.
+        facility = request.form.get('facility')
+        date = request.form.get('date')
+        
+        # No facility was entered.
+        if facility == '':
+            cursor.execute("SELECT asset_tag, description, common_name, arrive_dt, depart_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) JOIN facilities ON (asset_at.facility_fk = facilities.facility_pk) WHERE arrive_dt <= '{0}' AND (depart_dt is null OR depart_dt >= '{0}')".format(date))
+        # A facility code was entered.
+        else:
+            cursor.execute("SELECT asset_tag, description, common_name, arrive_dt, depart_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) JOIN facilities ON (asset_at.facility_fk = facilities.facility_pk) WHERE arrive_dt <= '{0}' AND (depart_dt is null OR depart_dt >= '{0}') AND facility_code = '{1}'".format(date, facility))
+        
+        # List containing all of the info for the table.
+        assets = cursor.fetchall()
+        
+        table_string = '<!DOCTYPE html><form action="/asset_report" method="POST">Facility Code: <input type="text" name="facility"><br>Date: <input type="text" name="date" placeholder="yyyy/mm/dd"><br><br><input type="submit" value="Submit"></form><body><h1>Asset Report</h1><table border="1"><tr><th>Asset Tag</th><th>Description</th><th>Facility</th><th>Date Arrived</th><th>Date Departed</th></tr>'
+        
+        # Adds the rows of the table to the table_string.
+        for row in assets:
+            table_string += "<tr>"
+            for each in row:
+                table_string += '<td>{}</td>'.format(each)
+            table_string += "</tr>"
+        
+        # Completes the table and returns the html code.
+        table_string += '</table></body></html>'
+        return table_string
     
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
