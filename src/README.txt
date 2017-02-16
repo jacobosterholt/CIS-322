@@ -7,3 +7,6 @@ The files in this directory are:
 	templates - directory that contains html templates for some of the web pages
 	-- create_user.html - displays the create new user screen
 	-- login.html - displays the login screen
+	-- add_facility.html - displays the add facility form.
+	-- dispose_asset.html - displays the dispose asset form.
+	-- asset_report.html - displays the filters for the asset report.
