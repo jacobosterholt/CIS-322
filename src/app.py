@@ -105,13 +105,55 @@ def create_user():
         
 @app.route("/dashboard")
 def dashboard():
+    connect_to_db()
+
     # Displays the username of the user currently logged in.
     if 'username' in session:
         username = session['username']
-        return username
+    else:
+        return redirect('/')
+        
+    html_string = '<!DOCTYPE html>{0}<br><br><a href="/asset_report">asset report</a><br><a href="/transfer_report">transfer report</a><br><a href="/add_asset">add asset</a><br><a href="/add_facility">add facility</a>'.format(username)
     
-    return redirect('/')
+    # Gets the role of the logged in user.
+    cursor.execute("SELECT title FROM users JOIN user_is ON (users.user_pk = user_is.user_fk) JOIN roles ON (user_is.role_fk = roles.role_pk) WHERE username = '{0}'".format(username))
+    role = cursor.fetchall()[0][0]
     
+    if role == 'Logistics Officer':
+        # Table for /update_transit
+        html_string += '<br><a href="/dispose_asset">dispose asset</a><br><a href="/transfer_req">transfer request</a><br><br><table border="1"><tr><th>Request Number</th><th>Asset Tag</th><th>Load Date</th><th>Unload Date</th></tr>'
+            
+        # Gets a list of transfers available to update.
+        cursor.execute("SELECT transfer_pk, asset_tag, load_dt, unload_dt FROM transfers JOIN in_transit ON (transfers.asset_fk = in_transit.asset_fk) JOIN assets ON (assets.asset_pk = in_transit.asset_fk) WHERE load_dt is null OR unload_dt is null")
+        requests = cursor.fetchall()
+        
+        for row in requests:
+            html_string += "<tr>"
+            for each in row:
+                html_string += '<td><a href="/update_transit">{}</a></td>'.format(each)
+            html_string += "</tr>"
+        
+        html_string += '</table>'
+        return html_string
+      
+    if role == 'Facilities Officer':
+        # Table for /approve_req
+        html_string += '<br><br><table border="1"><tr><th>Request Number</th><th>Asset Tag</th><th>Source Facility</th><th>Destination Facility</th></tr>'
+        
+        # Gets a list of requests available to approve.
+        # TODO: get the names of the facilites rather than their foreign keys.
+        cursor.execute("SELECT transfer_pk, asset_tag, source_facility_fk, destination_facility_fk FROM transfers JOIN assets ON (transfers.asset_fk = assets.asset_pk) WHERE approve_user_fk is null")
+        requests = cursor.fetchall()
+        
+        for row in requests:
+            html_string += "<tr>"
+            for each in row:
+                html_string += '<td><a href="/approve_req">{}</a></td>'.format(each)
+            html_string += "</tr>"
+            
+        html_string += '</table>'
+        return html_string
+            
 @app.route("/add_facility", methods=['GET', 'POST'])
 def add_facility():
     connect_to_db()
@@ -132,7 +174,7 @@ def add_facility():
             return render_template("add_facility.html")
         
         # Shows all current facilities and the form.
-        table_string = '<!DOCTYPE html>\n<html>\n<head>\n<title>Add Facility</title>\n</head>\n<body>\n<h1>Facilities</h1>\n<table border="1">\n<tr><th>Common name</th><th>Facility code</th></tr>'
+        table_string = '<!DOCTYPE html>\n<html>\n<head>\n<title>Add Facility</title>\n</head>\n<body>\n<h1>Facilities</h1>\n<table border="1"><tr><th>Common name</th><th>Facility code</th></tr>'
         
         # A list of lists containing the data from the facilities table.
         records = []
@@ -354,6 +396,215 @@ def asset_report():
         # Completes the table and returns the html code.
         table_string += '</table></body></html>'
         return table_string
+
+@app.route("/transfer_req", methods=['GET', 'POST'])
+def transfer_req():
+    connect_to_db()
     
+    # Gets the username of the user currently logged in.
+    if 'username' in session:
+        username = session['username']
+    else:
+        return redirect('/')
+    
+    # Gets the role of the logged in user.
+    cursor.execute("SELECT title FROM users JOIN user_is ON (users.user_pk = user_is.user_fk) JOIN roles ON (user_is.role_fk = roles.role_pk) WHERE username = '{0}'".format(username))
+    role = cursor.fetchall()[0][0]
+    
+    # Checks if the user is a logistics officer.
+    if role != 'Logistics Officer':
+        return '<!DOCTYPE html>Only logistics officers can request transfers.'
+        
+    if request.method == 'GET':
+        # Gets the names of all facilities in the database.
+        cursor.execute("SELECT common_name FROM facilities")
+        facilites = cursor.fetchall()
+        
+        html_string = '<!DOCTYPE html><html><head><title>Transfer Request</title></head><body><h1>Transfer Request</h1><form action="/transfer_req" method="POST"><br>Asset Tag: <input type="text" name="tag"><br>Destination Facility: <select name="destination"><br>'
+        options_string = ''
+        
+        # Creates the dropdown options for destination and source facility.
+        for each in facilites:
+            options_string += '<option value="{0}">{0}</option>'.format(each[0])
+            
+        html_string += options_string + '</select><br><br><input type="submit" value="Submit"></form></body></html>'
+        return html_string
+        
+    if request.method == 'POST':
+        # Gets the inputs from the form.
+        tag = request.form.get('tag')
+        destination = request.form.get('destination')
+        
+        # Checks to see if the asset exists.
+        cursor.execute("SELECT asset_pk FROM assets WHERE asset_tag = '{0}'".format(tag))
+        assets = cursor.fetchall()
+        try:
+            count = len(assets)
+        except:
+            count = 0
+        if count == 0:
+            return 'No asset with tag "{0}" exists.'.format(tag)
+        
+        # Figures out the primary key for the request.
+        cursor.execute("SELECT * FROM transfers")
+        transfers = cursor.fetchall()
+        try:
+            transfer_pk = len(transfers) + 1
+        except:
+            transfer_pk = 1
+        
+        # Figures out the foreign key for the request user.
+        cursor.execute("SELECT user_pk FROM users WHERE username = '{0}'".format(username))
+        user_fk = cursor.fetchall()[0][0]
+        
+        # Figures out the foreign key for the source facility.
+        cursor.execute("SELECT facility_fk FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) WHERE asset_tag = '{0}' AND depart_dt is null".format(tag))
+        source_fk = cursor.fetchall()[0][0]
+        
+        # Figures out the foreign key for the destination facility.
+        cursor.execute("SELECT facility_pk FROM facilities WHERE common_name = '{0}'".format(destination))
+        destination_fk = cursor.fetchall()[0][0]
+        
+        if source_fk == destination_fk:
+            return 'This asset is already at this location.'
+        
+        # Adds the transfer request to the database.
+        cursor.execute("INSERT INTO transfers (transfer_pk, request_user_fk, request_dt, source_facility_fk, destination_facility_fk, asset_fk) VALUES ({0}, {1}, CURRENT_TIMESTAMP, '{2}', '{3}', '{4}')".format(transfer_pk, user_fk, source_fk, destination_fk, assets[0][0]))
+        conn.commit()
+        return 'Transit request has been successfully added!'
+
+@app.route("/approve_req", methods=['GET', 'POST'])
+def approve_req():
+    connect_to_db()
+    
+    # Gets the username of the user currently logged in.
+    if 'username' in session:
+        username = session['username']
+    else:
+        return redirect('/')
+    
+    # Gets the role of the logged in user.
+    cursor.execute("SELECT title FROM users JOIN user_is ON (users.user_pk = user_is.user_fk) JOIN roles ON (user_is.role_fk = roles.role_pk) WHERE username = '{0}'".format(username))
+    role = cursor.fetchall()[0][0]
+    
+    # Checks if the user is a logistics officer.
+    if role != 'Facilities Officer':
+        return '<!DOCTYPE html>Only facilites officers can approve transfers.'
+        
+    if request.method == 'GET':
+        # Gets a list of requests available to approve.
+        cursor.execute("SELECT transfer_pk FROM transfers WHERE approve_user_fk is null")
+        requests = cursor.fetchall()
+        
+        html_string = '<!DOCTYPE html><html><head><title>Approve Request</title></head><body><h1>Approve Request</h1><form action="/approve_req" method="POST"><br>Request Number: <select name="approve">'
+        options_string = ''
+        
+        # Creates the dropdown options for available requests.
+        for each in requests:
+            options_string += '<option value="{0}">{0}</option>'.format(each[0])
+            
+        html_string += options_string + '</select><br><input type="submit" value="Approve"></form><br><br><form action="/approve_req" method="POST"><br>Request Number: <select name="deny">' + options_string + '</select><br><input type="submit" value="Deny"></form></body></html>'
+        return html_string
+        
+    if request.method == 'POST':
+        approve = request.form.get('approve')
+        deny = request.form.get('deny')
+                        
+        if approve:
+            # Figures out the foreign key for the request user.
+            cursor.execute("SELECT user_pk FROM users WHERE username = '{0}'".format(username))
+            user_fk = cursor.fetchall()[0][0]
+            
+            # Gets the info from transfers to be added to the in_transit table.
+            cursor.execute("SELECT asset_fk, source_facility_fk, destination_facility_fk FROM transfers WHERE transfer_pk = {0}".format(approve))
+            transfer = cursor.fetchall()
+            
+            # Updates the in_transit and transfers tables in the database.
+            cursor.execute("INSERT INTO in_transit (asset_fk, source_facility_fk, destination_facility_fk) VALUES ({0}, {1}, {2})".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("UPDATE transfers SET approve_user_fk = {0}, approve_dt = CURRENT_TIMESTAMP WHERE transfer_pk = {1}".format(user_fk, approve))
+            conn.commit()
+            
+            return redirect('/dashboard')
+        
+        if deny:
+            # Deletes the request from the database.
+            cursor.execute("DELETE FROM transfers WHERE transfer_pk = {0}".format(deny))
+            conn.commit()
+            return redirect('/dashboard')
+    
+@app.route("/update_transit", methods=['GET', 'POST'])
+def update_transit():
+    connect_to_db()
+    
+    # Gets the username of the user currently logged in.
+    if 'username' in session:
+        username = session['username']
+    else:
+        return redirect('/')
+    
+    # Gets the role of the logged in user.
+    cursor.execute("SELECT title FROM users JOIN user_is ON (users.user_pk = user_is.user_fk) JOIN roles ON (user_is.role_fk = roles.role_pk) WHERE username = '{0}'".format(username))
+    role = cursor.fetchall()[0][0]
+    
+    # Checks if the user is a logistics officer.
+    if role != 'Logistics Officer':
+        return '<!DOCTYPE html>Only logistics officers can update tracking information.'
+        
+    if request.method == 'GET':
+        # Gets a list of transfers available to update.
+        cursor.execute("SELECT transfer_pk FROM transfers JOIN in_transit ON (transfers.asset_fk = in_transit.asset_fk) WHERE load_dt is null OR unload_dt is null")
+        requests = cursor.fetchall()
+        
+        html_string = '<!DOCTYPE html><html><head><title>Update Transit</title></head><body><h1>Update Transit</h1><form action="/update_transit" method="POST"><br>Request Number: <select name="number">'
+        options_string = ''
+        
+        # Creates the dropdown options for available updates.
+        for each in requests:
+            options_string += '<option value="{0}">{0}</option>'.format(each[0])
+            
+        html_string += options_string + '</select><br>Load Time: <input type="text" name="load" placeholder="yyyy/mm/dd hh:mm:ss"><br>Unload Time: <input type="text" name="unload" placeholder="yyyy/mm/dd hh:mm:ss"><br><input type="submit" value="Submit"></form></body></html>'
+        return html_string
+        
+    if request.method == 'POST':
+        # Gets the load and/or unload times from the form.
+        number = request.form.get('number')
+        load = request.form.get('load')
+        unload = request.form.get('unload')
+        
+        cursor.execute("SELECT asset_fk, source_facility_fk, destination_facility_fk FROM transfers WHERE transfer_pk = {0}".format(number))
+        transfer = cursor.fetchall()
+        
+        if load:
+            cursor.execute("SELECT load_dt FROM in_transit WHERE asset_fk = {0} AND source_facility_fk = {1} AND destination_facility_fk = {2}".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            updates = cursor.fetchall()
+            
+            # Checks to make sure the user is making a valid request.
+            valid = False
+            for each in updates:
+                if each[0] == None:
+                    valid = True
+            
+            # Updates the database.
+            if valid:
+                cursor.execute("UPDATE in_transit SET load_dt = '{0}' WHERE asset_fk = {1} AND source_facility_fk = {2} AND destination_facility_fk = {3} AND load_dt is null".format(load, transfer[0][0], transfer[0][1], transfer[0][2]))
+                cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = {1} AND depart_dt is null".format(load, transfer[0][0]))
+                conn.commit()
+            else:
+                return 'Invalid Request'
+        
+        if unload:
+            # Gets needed info from other tables in the database.
+            cursor.execute("SELECT unload_dt FROM in_transit WHERE asset_fk = {0} AND source_facility_fk = {1} AND destination_facility_fk = {2}".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            updates = cursor.fetchall()
+            cursor.execute("SELECT asset_fk, destination_facility_fk FROM transfers WHERE transfer_pk = {0}".format(number))
+            values = cursor.fetchall()
+            
+            # Updates the database.
+            cursor.execute("UPDATE in_transit SET unload_dt = '{0}' WHERE asset_fk = {1} AND source_facility_fk = {2} AND destination_facility_fk = {3} AND unload_dt is null".format(unload, transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("INSERT INTO asset_at (asset_fk, facility_fk, arrive_dt) VALUES ({0}, {1}, '{2}')".format(values[0][0], values[0][1], unload))
+            conn.commit()
+        
+        return redirect('/dashboard')
+        
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8080, debug=True)

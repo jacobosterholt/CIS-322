@@ -57,3 +57,30 @@ CREATE TABLE asset_at (
     arrive_dt timestamp,
     depart_dt timestamp
 );
+
+-- Keeps track of the user that requested and approved the transfer,
+-- the time of the request and approval, the facilities the asset is
+-- going to and coming from, as well as the asset that is being moved.
+
+CREATE TABLE transfers (
+    transfer_pk integer PRIMARY KEY,
+    request_user_fk integer REFERENCES users(user_pk),
+    approve_user_fk integer REFERENCES users(user_pk),
+    request_dt timestamp,
+    approve_dt timestamp,
+    source_facility_fk integer REFERENCES facilities(facility_pk),
+    destination_facility_fk integer REFERENCES facilities(facility_pk),
+    asset_fk integer REFERENCES assets(asset_pk)
+);
+
+-- Keeps track of the assets that are in transit as well as the
+-- facilities they are going to and coming from and the depart time
+-- and arrival time.
+
+CREATE TABLE in_transit (
+    asset_fk integer REFERENCES assets(asset_pk),
+    source_facility_fk integer REFERENCES facilities(facility_pk),
+    destination_facility_fk integer REFERENCES facilities(facility_pk),
+    load_dt timestamp,
+    unload_dt timestamp
+);
