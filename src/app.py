@@ -124,7 +124,7 @@ def dashboard():
         html_string += '<br><a href="/dispose_asset">dispose asset</a><br><a href="/transfer_req">transfer request</a><br><br><table border="1"><tr><th>Request Number</th><th>Asset Tag</th><th>Load Date</th><th>Unload Date</th></tr>'
             
         # Gets a list of transfers available to update.
-        cursor.execute("SELECT transfer_pk, asset_tag, load_dt, unload_dt FROM transfers JOIN in_transit ON (transfers.asset_fk = in_transit.asset_fk) JOIN assets ON (assets.asset_pk = in_transit.asset_fk) WHERE load_dt is null OR unload_dt is null")
+        cursor.execute("SELECT transfer_pk, asset_tag, load_dt, unload_dt FROM transfers JOIN in_transit ON (transfers.transfer_pk = in_transit.transfer_fk) JOIN assets ON (assets.asset_pk = in_transit.asset_fk) WHERE load_dt is null OR unload_dt is null")
         requests = cursor.fetchall()
         
         for row in requests:
@@ -240,7 +240,7 @@ def add_asset():
             facility_names.append(fac[1])
             
         # Gets a list of all assets in the database.
-        cursor.execute("SELECT asset_tag, description, common_name, arrive_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) JOIN facilities ON (asset_at.facility_fk = facilities.facility_pk)")
+        cursor.execute("SELECT asset_tag, description, common_name, arrive_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) JOIN facilities ON (asset_at.facility_fk = facilities.facility_pk) WHERE depart_dt is null")
         all_assets = cursor.fetchall()
         
         # Figures out how many assets are in the database.
@@ -520,7 +520,7 @@ def approve_req():
             transfer = cursor.fetchall()
             
             # Updates the in_transit and transfers tables in the database.
-            cursor.execute("INSERT INTO in_transit (asset_fk, source_facility_fk, destination_facility_fk) VALUES ({0}, {1}, {2})".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("INSERT INTO in_transit (asset_fk, transfer_fk, source_facility_fk, destination_facility_fk) VALUES ({0}, {1}, {2}, {3})".format(transfer[0][0], approve, transfer[0][1], transfer[0][2]))
             cursor.execute("UPDATE transfers SET approve_user_fk = {0}, approve_dt = CURRENT_TIMESTAMP WHERE transfer_pk = {1}".format(user_fk, approve))
             conn.commit()
             
@@ -552,7 +552,7 @@ def update_transit():
         
     if request.method == 'GET':
         # Gets a list of transfers available to update.
-        cursor.execute("SELECT transfer_pk FROM transfers JOIN in_transit ON (transfers.asset_fk = in_transit.asset_fk) WHERE load_dt is null OR unload_dt is null")
+        cursor.execute("SELECT transfer_pk FROM transfers JOIN in_transit ON (transfers.transfer_pk = in_transit.transfer_fk) WHERE load_dt is null OR unload_dt is null")
         requests = cursor.fetchall()
         
         html_string = '<!DOCTYPE html><html><head><title>Update Transit</title></head><body><h1>Update Transit</h1><form action="/update_transit" method="POST"><br>Request Number: <select name="number">'
@@ -575,7 +575,7 @@ def update_transit():
         transfer = cursor.fetchall()
         
         if load:
-            cursor.execute("SELECT load_dt FROM in_transit WHERE asset_fk = {0} AND source_facility_fk = {1} AND destination_facility_fk = {2}".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("SELECT load_dt FROM in_transit WHERE transfer_fk = '{0}'".format(number))
             updates = cursor.fetchall()
             
             # Checks to make sure the user is making a valid request.
@@ -586,7 +586,7 @@ def update_transit():
             
             # Updates the database.
             if valid:
-                cursor.execute("UPDATE in_transit SET load_dt = '{0}' WHERE asset_fk = {1} AND source_facility_fk = {2} AND destination_facility_fk = {3} AND load_dt is null".format(load, transfer[0][0], transfer[0][1], transfer[0][2]))
+                cursor.execute("UPDATE in_transit SET load_dt = '{0}' WHERE transfer_fk = '{1}'".format(load, number))
                 cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = {1} AND depart_dt is null".format(load, transfer[0][0]))
                 conn.commit()
             else:
@@ -594,13 +594,13 @@ def update_transit():
         
         if unload:
             # Gets needed info from other tables in the database.
-            cursor.execute("SELECT unload_dt FROM in_transit WHERE asset_fk = {0} AND source_facility_fk = {1} AND destination_facility_fk = {2}".format(transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("SELECT unload_dt FROM in_transit WHERE transfer_fk = {0}".format(number))
             updates = cursor.fetchall()
             cursor.execute("SELECT asset_fk, destination_facility_fk FROM transfers WHERE transfer_pk = {0}".format(number))
             values = cursor.fetchall()
             
             # Updates the database.
-            cursor.execute("UPDATE in_transit SET unload_dt = '{0}' WHERE asset_fk = {1} AND source_facility_fk = {2} AND destination_facility_fk = {3} AND unload_dt is null".format(unload, transfer[0][0], transfer[0][1], transfer[0][2]))
+            cursor.execute("UPDATE in_transit SET unload_dt = '{0}' WHERE transfer_fk = {1}".format(unload, number))
             cursor.execute("INSERT INTO asset_at (asset_fk, facility_fk, arrive_dt) VALUES ({0}, {1}, '{2}')".format(values[0][0], values[0][1], unload))
             conn.commit()
         

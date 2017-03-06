@@ -79,6 +79,7 @@ CREATE TABLE transfers (
 
 CREATE TABLE in_transit (
     asset_fk integer REFERENCES assets(asset_pk),
+    transfer_fk integer REFERENCES transfers(transfer_pk),
     source_facility_fk integer REFERENCES facilities(facility_pk),
     destination_facility_fk integer REFERENCES facilities(facility_pk),
     load_dt timestamp,
