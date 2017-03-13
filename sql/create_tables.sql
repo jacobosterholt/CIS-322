@@ -1,10 +1,12 @@
 -- Uses a unique integer for the primary key.
 -- Both the username and password are at most 16 characters.
+-- Active is TRUE if the user is active and FALSE otherwise.
 
 CREATE TABLE users (
 	user_pk integer PRIMARY KEY,
 	username varchar(16),
-	password varchar(16)
+	password varchar(16),
+    active boolean DEFAULT TRUE
 );
 
 -- Uses a unique integer for the primary key.
@@ -30,11 +32,13 @@ CREATE TABLE user_is (
 -- Uses a unique integer for the primary key.
 -- Asset_tag is at most 16 characters.
 -- Description is at most 50 characters.
+-- Disposed is TRUE if the asset has been disposed and FALSE otherwise.
 
 CREATE TABLE assets (
 	asset_pk integer PRIMARY KEY,
 	asset_tag varchar(16),
-    description varchar(50)
+    description varchar(50),
+    disposed boolean DEFAULT FALSE
 );
 
 -- Uses a unique integer for the primary key.

@@ -342,23 +342,22 @@ def dispose_asset():
         
         cursor.execute("SELECT assets.asset_pk, depart_dt FROM assets JOIN asset_at ON (assets.asset_pk = asset_at.asset_fk) WHERE asset_tag = '{0}'".format(tag))
         d = cursor.fetchall()
+        key = d[0][0]
         
         # The asset doesn't exist.
         if len(d) == 0:
             return 'The asset tag "{0}" is not in use.'.format(tag)
         
-        # Checks if the asset is at a facility.
-        disposed = True
-        for each in d:
-            if each[1] == None:
-                disposed = False
-                key = each[0]
+        # Checks if the asset has already been disposed.
+        cursor.execute("SELECT disposed FROM assets WHERE asset_tag = '{0}'".format(tag))
+        disposed = cursor.fetchall()[0][0]
         
         if disposed:
             return 'The asset "{0}" has already been disposed.'.format(tag)
-            
+        
         # Puts the date in the database as the depart_dt of the asset.
-        cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = {1} AND depart_dt is null".format(date, key))
+        cursor.execute("UPDATE asset_at SET depart_dt = '{0}' WHERE asset_fk = '{1}' AND depart_dt is null".format(date, key))
+        cursor.execute("UPDATE assets SET disposed = TRUE WHERE asset_tag = '{0}'".format(tag))
         conn.commit()
         return redirect('/dashboard')
     
