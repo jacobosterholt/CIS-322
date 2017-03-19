@@ -52,7 +52,7 @@ def login():
         password = request.form.get('password')
     
         # Looks for a user with the specified username and password.
-        cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}'".format(uname, password))
+        cursor.execute("SELECT * FROM users WHERE username = '{0}' AND password = '{1}' AND active = True".format(uname, password))
         user = cursor.fetchall()
         
         # No matching username and password.
@@ -63,45 +63,78 @@ def login():
             session['username'] = uname
             return redirect("/dashboard")
 
-@app.route("/create_user", methods=['GET', 'POST'])
-def create_user():
-    global cursor
-    global conn
+@app.route("/rest/activate_user", methods=['POST',])
+def activate_user():
     connect_to_db()
+
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])    
     
-    if request.method == 'GET':
-        return render_template("create_user.html")
+    # Checks if the user already exists or needs to be created.
+    cursor.execute("SELECT user_pk FROM users WHERE username = '{0}'".format(req['username']))
+    try:
+        key = cursor.fetchall()[0][0]
+    except:
+        key = None
     
-    # Gets the username and password that were entered.
-    if request.method == 'POST':
-        uname = request.form.get('uname')
-        password = request.form.get('password')
-        role = request.form.get('roles')
-        
     # Gets the role_pk associated with the role.
-    cursor.execute("SELECT role_pk FROM roles WHERE title = '{}'".format(role))
+    cursor.execute("SELECT role_pk FROM roles WHERE title = '{}'".format(req['role']))
     role_key = cursor.fetchall()[0][0]
     
-    # Lists of users to be used for generating a primary key.
-    cursor.execute("SELECT * FROM users")
-    all_users = cursor.fetchall()
-    cursor.execute("SELECT * FROM users WHERE username = '{0}'".format(uname))
-    repeat_user = cursor.fetchall()
+    dat = req
     
-    # Username entered is already in use.
-    if len(repeat_user) > 0:
-        return '<!DOCTYPE html><br>User "{0}" already exists.'.format(uname)
-    # Adds username and password to the database as a new user in users.
-    # Adds the connection between user and role to the database in user_is.
+    if key:
+        # Updates the user's information in the database.
+        cursor.execute("UPDATE users SET (password, active) = ('{0}', True) WHERE user_pk = '{1}'".format(req['password'], key))
+        cursor.execute("UPDATE user_is SET role_fk = {0} WHERE user_fk = {1}".format(role_key, key))
+        dat['result'] = 'Updated User'
     else:
+        # Lists of users to be used for generating a primary key.
+        cursor.execute("SELECT * FROM users")
+        all_users = cursor.fetchall()
+        
+        # Adds username and password to the database as a new user in users.
+        # Adds the connection between user and role to the database in user_is.
         try:
             count = len(all_users)
         except:
             count = 0
-        cursor.execute("INSERT INTO users (user_pk, username, password) VALUES ({0}, '{1}', '{2}')".format(count + 1, uname, password))
+        cursor.execute("INSERT INTO users (user_pk, username, password, active) VALUES ({0}, '{1}', '{2}', True)".format(count + 1, req['username'], req['password']))
         cursor.execute("INSERT INTO user_is (user_fk, role_fk) VALUES ({0}, {1})".format(count + 1, role_key))
+        
+        dat['result'] = 'Added User'
+    
+    conn.commit()
+    
+    data = json.dumps(dat)
+    return data
+
+@app.route("/rest/revoke_user", methods=['POST',])
+def revoke_user():
+    connect_to_db()
+
+    if request.method=='POST' and 'arguments' in request.form:
+        req = json.loads(request.form['arguments'])    
+    
+    # Checks if the user already exists.
+    cursor.execute("SELECT user_pk FROM users WHERE username = '{0}'".format(req['username']))
+    try:
+        key = cursor.fetchall()[0][0]
+    except:
+        key = None
+    
+    dat = req
+    
+    if key:
+        # Sets user's active status to false.
+        cursor.execute("UPDATE users SET active = False WHERE user_pk = {0}".format(key))
         conn.commit()
-        return '<!DOCTYPE html><br>User "{0}" has been created!'.format(uname)    
+        dat['result'] = 'Revoked User'
+    else:
+        dat['result'] = 'User Does Not Exist'
+    
+    data = json.dumps(dat)
+    return data 
         
 @app.route("/dashboard")
 def dashboard():
@@ -157,6 +190,10 @@ def dashboard():
 @app.route("/add_facility", methods=['GET', 'POST'])
 def add_facility():
     connect_to_db()
+    
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
     
     # Gets a list of all facilities in the database.
     cursor.execute("SELECT * FROM facilities")
@@ -218,6 +255,10 @@ def add_facility():
 @app.route("/add_asset", methods=['GET', 'POST'])
 def add_asset():
     connect_to_db()
+    
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
     
     if request.method == 'GET':
         # Gets a list of all facilities in the database.
@@ -319,6 +360,10 @@ def add_asset():
 def dispose_asset():
     connect_to_db()
     
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
+    
     # Gets the username of the user currently logged in.
     if 'username' in session:
         username = session['username']
@@ -365,6 +410,10 @@ def dispose_asset():
 def asset_report():
     connect_to_db()
     
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
+    
     if request.method == 'GET':
         return render_template('asset_report.html')
         
@@ -399,6 +448,10 @@ def asset_report():
 @app.route("/transfer_req", methods=['GET', 'POST'])
 def transfer_req():
     connect_to_db()
+    
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
     
     # Gets the username of the user currently logged in.
     if 'username' in session:
@@ -476,6 +529,10 @@ def transfer_req():
 def approve_req():
     connect_to_db()
     
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
+    
     # Gets the username of the user currently logged in.
     if 'username' in session:
         username = session['username']
@@ -534,6 +591,10 @@ def approve_req():
 @app.route("/update_transit", methods=['GET', 'POST'])
 def update_transit():
     connect_to_db()
+    
+    # Checks if the user is logged in.
+    if 'username' not in session:
+        return redirect('/')
     
     # Gets the username of the user currently logged in.
     if 'username' in session:
