@@ -63,6 +63,7 @@ def login():
             session['username'] = uname
             return redirect("/dashboard")
 
+# Used by webservice activate_user.
 @app.route("/rest/activate_user", methods=['POST',])
 def activate_user():
     connect_to_db()
@@ -109,6 +110,7 @@ def activate_user():
     data = json.dumps(dat)
     return data
 
+# Used by webservice revoke_user.
 @app.route("/rest/revoke_user", methods=['POST',])
 def revoke_user():
     connect_to_db()
